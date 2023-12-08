@@ -2,28 +2,31 @@
 
 namespace App\Nova;
 
-use Illuminate\Validation\Rules;
+use Laravel\Nova\Fields\Boolean;
+use Laravel\Nova\Fields\Date;
 use Laravel\Nova\Fields\ID;
-use Laravel\Nova\Fields\Password;
+use Laravel\Nova\Fields\Image;
+use Laravel\Nova\Fields\Select;
+use Laravel\Nova\Fields\Number;
 use Laravel\Nova\Fields\Text;
-use Laravel\Nova\Fields\UiAvatar;
+use Laravel\Nova\Fields\Trix;
 use Laravel\Nova\Http\Requests\NovaRequest;
 
-class User extends Resource
+class Book extends Resource
 {
     /**
      * The model the resource corresponds to.
      *
-     * @var class-string<\App\Models\User>
+     * @var class-string<\App\Models\Book>
      */
-    public static $model = \App\Models\User::class;
+    public static $model = \App\Models\Book::class;
 
     /**
      * The single value that should be used to represent the resource when being displayed.
      *
      * @var string
      */
-    public static $title = 'name';
+    public static $title = 'title';
 
     /**
      * The columns that should be searched.
@@ -31,7 +34,10 @@ class User extends Resource
      * @var array
      */
     public static $search = [
-        'id', 'name', 'email',
+        'id',
+        "title",
+        "genre",
+        "published_date",
     ];
 
     /**
@@ -45,22 +51,41 @@ class User extends Resource
         return [
             ID::make()->sortable(),
 
-            UiAvatar::make()->maxWidth(50),
+            Image::make("Cover", "cover_pic")
+                ->disk("public")
+                ->disableDownload()
+                ->squared(),
 
-            Text::make('Name')
+            Text::make("Title")
                 ->sortable()
-                ->rules('required', 'max:255'),
+                ->required()
+                ->creationRules("unique:books,title")
+                ->updateRules("unique:books,title,{{resourceId}}"),
 
-            Text::make('Email')
+            Number::make("Pages", "page_no")
+                ->rules("required", "min:1", "max:10000")
+                ->filterable()
+                ->hideFromIndex(),
+
+            Number::make("Copies", "copies")
                 ->sortable()
-                ->rules('required', 'email', 'max:254')
-                ->creationRules('unique:users,email')
-                ->updateRules('unique:users,email,{{resourceId}}'),
+                ->required()
+                ->help("The number of all the copies are available"),
 
-            Password::make('Password')
-                ->onlyOnForms()
-                ->creationRules('required', Rules\Password::defaults())
-                ->updateRules('nullable', Rules\Password::defaults()),
+            Boolean::make("Featured", "is_featured")
+                ->help("Whether this book is featured on the homepage.")
+                ->filterable(),
+
+            // Select::make("Genre", "genre")->options([
+            //     "Love" => "Love Story",
+            //     "Issekai" => "Reincarnation",
+            //     "Horror" => "Horror and Thriller",
+            //     "Story" => "Story or slice of life",
+            // ]),
+
+            Trix::make("Blurb", "blurb"),
+
+            Date::make("Published On", "published_date"),
         ];
     }
 
